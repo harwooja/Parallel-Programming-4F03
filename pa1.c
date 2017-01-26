@@ -1,13 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "pa1.h"
+
 
 #define MAX_NUM_ARGUMENTS 12
 int thread_count;
 
+pthread_mutex_t* mutexLock;
+struct SOB* strObj;
+
 int main(int argc, char* argv[]) {
-    if (argc > NUM_ARGUMENTS) {
+    if (argc > MAX_NUM_ARGUMENTS) {
         printf("Invalid number of arguments");
         exit(1);
     }
@@ -25,12 +30,20 @@ int main(int argc, char* argv[]) {
 
     // Allocate object on the heap
     thread_handles = malloc(thread_count*sizeof(pthread_t));
+    strObj = malloc(sizeof(struct SOB));
+
+    // Initialize our mutex lock
+    pthread_mutex_init(mutexLock, NULL);
+
+    /* Initialize structure paramaters */
+    (*strObj).substring_Length = substring_Length;
+    (*strObj).number_of_Segments = substring_Partitions;
+    (*strObj).charArray[(substring_Length + substring_Partitions) + 1];
 
     /* Create our threads */
     for (thread = 0; thread < thread_count; thread++) 
         pthread_create(&thread_handles[thread], NULL, Construct, (void*) thread);
 
-    
     printf("Hello from the main thread! \n");
 
     // Threads will wait until child terminates
@@ -39,14 +52,19 @@ int main(int argc, char* argv[]) {
 
 
     free(thread_handles);
+    free(mutexLock);
     return 0;
 }
 
 void *Construct(void* rank) {
     long my_rank = (long) rank; 
 
-    sleep(RandomBetween(0.1, 0.5));
+    usleep(RandomBetween(0.1, 0.5));
     printf("Hello from thread %ld of %d \n", my_rank, thread_count);
+
+    pthread_mutex_lock(mutexLock);
+                
+    pthread_mutex_unlock(mutexLock);
 
     return NULL;
 }
