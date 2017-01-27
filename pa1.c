@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     for (thread = 0; thread < thread_count; thread++) 
         pthread_create(&thread_handles[thread], NULL, Construct, (void*) thread);
 
-    printf("Hello from the main thread! \n");
+    //printf("Hello from the main thread! \n");
 
     // Threads will wait until child terminates
     for (thread = 0; thread < thread_count; thread++)
@@ -57,8 +57,7 @@ void *Construct(void* rank) {
     long my_rank = (long) rank; 
     
     //printf("Hello from thread %ld of %d \n", my_rank, thread_count);
-    usleep(RandomBetween(0.1, 0.5));
-
+    LOOP: usleep(RandomBetween(0.1, 0.5));
   
     pthread_mutex_lock(&mutexLock);
         /** Pull out values from our resource **/
@@ -77,6 +76,9 @@ void *Construct(void* rank) {
         }
     pthread_mutex_unlock(&mutexLock);
 
+    if (currentStringLength < (number_of_Segments * substring_Length))
+        goto LOOP;
+    
     return NULL;
 }
 
