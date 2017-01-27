@@ -5,10 +5,10 @@
 #include "pa1.h"
 
 
-#define MAX_NUM_ARGUMENTS 12
+#define MAX_NUM_ARGUMENTS 8
 int thread_count;
 
-pthread_mutex_t* mutexLock;
+pthread_mutex_t mutexLock;
 struct SOB* strObj;
 
 int main(int argc, char* argv[]) {
@@ -32,13 +32,12 @@ int main(int argc, char* argv[]) {
     thread_handles = malloc(thread_count*sizeof(pthread_t));
     strObj = malloc(sizeof(struct SOB));
 
-    // Initialize our mutex lock
-    pthread_mutex_init(mutexLock, NULL);
-
     /* Initialize structure paramaters */
     (*strObj).substring_Length = substring_Length;
     (*strObj).number_of_Segments = substring_Partitions;
     (*strObj).charArray[(substring_Length + substring_Partitions) + 1];
+    (*strObj).charIndex = 0;
+    (*strObj).currentLength = 0;
 
     /* Create our threads */
     for (thread = 0; thread < thread_count; thread++) 
@@ -50,21 +49,33 @@ int main(int argc, char* argv[]) {
     for (thread = 0; thread < thread_count; thread++)
         pthread_join(thread_handles[thread], NULL);
 
-
     free(thread_handles);
-    free(mutexLock);
     return 0;
 }
 
 void *Construct(void* rank) {
     long my_rank = (long) rank; 
-
+    
+    //printf("Hello from thread %ld of %d \n", my_rank, thread_count);
     usleep(RandomBetween(0.1, 0.5));
-    printf("Hello from thread %ld of %d \n", my_rank, thread_count);
 
-    pthread_mutex_lock(mutexLock);
-                
-    pthread_mutex_unlock(mutexLock);
+  
+    pthread_mutex_lock(&mutexLock);
+        /** Pull out values from our resource **/
+        int substring_Length = (*strObj).substring_Length;
+        int number_of_Segments = (*strObj).number_of_Segments;
+        int currentStringLength = (*strObj).currentLength;
+        int charIndex = (*strObj).charIndex;
+
+        if (currentStringLength < (number_of_Segments * substring_Length) ) {
+           char assignedChar = 'a' + my_rank;  
+           (*strObj).charArray[charIndex] = assignedChar;  
+           (*strObj).charIndex = charIndex + 1;
+           (*strObj).currentLength = currentStringLength + 1;
+
+           printf("Char: %c, Index: %i \n", (*strObj).charArray[charIndex], charIndex);
+        }
+    pthread_mutex_unlock(&mutexLock);
 
     return NULL;
 }

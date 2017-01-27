@@ -4,6 +4,7 @@ float RandomBetween(float smallNumber, float bigNumber);
 struct SOB {
     int substring_Length;
     int number_of_Segments;
-    size_t charIndex;
+    int currentLength;
+    int charIndex;
     char charArray[];
 };
