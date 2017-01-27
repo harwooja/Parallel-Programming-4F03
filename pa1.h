@@ -1,8 +1,10 @@
 void *Construct(void *rank); /*Thread function*/
 float RandomBetween(float smallNumber, float bigNumber);
 
-// struct S {
-//     char* string[];
-//     int maxLength;
-//     size_t charIndex = 0;
-// }
+struct SOB {
+    int substring_Length;
+    int number_of_Segments;
+    int currentLength;
+    int charIndex;
+    char charArray[];
+};
