@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include "pa1.h"
 
 //global veraible for how mant segments are verified
@@ -34,9 +35,9 @@ int main(int argc, char* argv[]) {
     thread_count = strtol(argv[2], NULL, 10);
     substring_Length = strtol(argv[3], NULL, 10);
     substring_Partitions = strtol(argv[4], NULL, 10);
-    c0 = strtol(argv[5], NULL, 10);
-    c1 = strtol(argv[6], NULL, 10);
-    c2 = strtol(argv[7], NULL, 10);
+    c0 = (*argv[5]);
+    c1 = (*argv[6]);
+    c2 = (*argv[7]);
 
     // Allocate object on the heap
     thread_handles = malloc(thread_count*sizeof(pthread_t));
@@ -85,9 +86,11 @@ void *Construct(void* rank) {
         int property_number = (*strObj).property_num;
         int thread_num = (*strObj).number_of_threads;
         char c0 = (*strObj).c0;
+        //printf("c0 = %c \n", c0);
         char c1 = (*strObj).c1;
+        //printf("c1 = %c \n", c1);
         char c2 = (*strObj).c2;
-
+        //printf("c2 = %c \n", c2);
 
         if (currentStringLength < (number_of_Segments * substring_Length) ) {
            char assignedChar = 'a' + my_rank;  
@@ -106,6 +109,7 @@ void *Construct(void* rank) {
     
     return NULL;
 }
+
 
 
 float RandomBetween(float smallNumber, float bigNumber)
@@ -130,6 +134,44 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
             global_checked_seg++;
         pthread_mutex_unlock(&mutexLock); //release lock
         int* resultingCount = count(start, end,c0,c1,c2);
+
+        if (property_Index == 0){
+            bool eq = resultingCount[0] + resultingCount[1] == resultingCount[2]; 
+              //printf("f0 == 0, %d + %d = %d \n",resultingCount[0], resultingCount[1], resultingCount[2] ); 
+            if (eq){
+                pthread_mutex_lock(&mutexLock); //grab lock
+                    global_verified_seg++;
+                    printf("Number of verified segments %d \n",global_verified_seg);
+                pthread_mutex_unlock(&mutexLock); //release lock
+            }
+        }else if (property_Index == 1){
+            bool eq = resultingCount[0] + 2*(resultingCount[1]) == resultingCount[2];  
+            if (eq){
+                pthread_mutex_lock(&mutexLock); //grab lock
+                    global_verified_seg++;
+                    printf("Number of verified segments %d \n",global_verified_seg);
+                pthread_mutex_unlock(&mutexLock); //release lock
+            }
+        }else if (property_Index == 2){
+            bool eq = resultingCount[0] * resultingCount[1] == resultingCount[2];  
+            if (eq){
+                pthread_mutex_lock(&mutexLock); //grab lock
+                    global_verified_seg++;
+                    printf("Number of verified segments %d \n",global_verified_seg);
+                pthread_mutex_unlock(&mutexLock); //release lock
+            }              
+        }else if (property_Index == 3){
+            bool eq = resultingCount[0] * resultingCount[1] == resultingCount[2];  
+            if (eq){
+                pthread_mutex_lock(&mutexLock); //grab lock
+                    global_verified_seg++;
+                    printf("Number of verified segments %d \n",global_verified_seg);
+                pthread_mutex_unlock(&mutexLock); //release lock
+            }            
+        }else{
+            printf("Invalid Property Number submitted! \n");
+        }
+
     }
 }
 
@@ -139,6 +181,7 @@ int* count(int start, int end, char c0, char c1, char c2){
     int c1_count = 0;
     int c2_count = 0;
     for (i; i < end; i++){ //(*strObj).charArray[i]
+           // printf("counting, string char = %c \n", (*strObj).charArray[i]);
             if ((*strObj).charArray[i] == c0){
                 c0_count++;
             }else if((*strObj).charArray[i] == c1){
