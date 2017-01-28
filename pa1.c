@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     /* Initialize structure paramaters */
     (*strObj).substring_Length = substring_Length;
     (*strObj).number_of_Segments = substring_Partitions;
-    (*strObj).charArray[(substring_Length + substring_Partitions) + 1];
+    (*strObj).charArray = malloc(substring_Length * substring_Partitions + 1);
     (*strObj).charIndex = 0;
     (*strObj).currentLength = 0;
 
@@ -68,11 +68,14 @@ void *Construct(void* rank) {
 
         if (currentStringLength < (number_of_Segments * substring_Length) ) {
            char assignedChar = 'a' + my_rank;  
+          
+           printf("char index: %i \n", charIndex);
+          
            (*strObj).charArray[charIndex] = assignedChar;  
            (*strObj).charIndex = charIndex + 1;
            (*strObj).currentLength = currentStringLength + 1;
 
-           printf("Char: %c, Index: %i \n", (*strObj).charArray[charIndex], charIndex);
+          // printf("Char: %c, Index: %i \n", (*strObj).charArray[charIndex], charIndex);
         }
     pthread_mutex_unlock(&mutexLock);
 
