@@ -6,5 +6,5 @@ struct SOB {
     int number_of_Segments;
     int currentLength;
     int charIndex;
-    char charArray[];
+    char* charArray;
 };
