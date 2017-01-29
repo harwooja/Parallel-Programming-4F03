@@ -5,16 +5,15 @@
 #include <stdbool.h>
 #include "pa1.h"
 
-//global veraible for how mant segments are verified
-//global for checked segments from verify, M_seg_counter
-
-
 #define MAX_NUM_ARGUMENTS 8
 int thread_count;
 
 pthread_mutex_t mutexLock;
 struct SOB* strObj;
+FILE* filePointer;
 
+//global variable for how many segments are verified
+//global for checked segments from verify, M_seg_counter
 int global_checked_seg = 0;
 int global_verified_seg = 0;
 
@@ -24,10 +23,16 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
    
+    filePointer = fopen("write.txt", "w+");
+
+    if (filePointer == NULL) {
+        printf("Write.txt doesn't exist -- cannot show output");
+        exit(1);
+    }
+
     long thread; /* Use long in case of a 64-bit system */
     int property_Index, substring_Length, substring_Partitions;
-    char c0,c1,c2; 
-    
+    char c0,c1,c2;    
     pthread_t* thread_handles;
 
     /*Get number of threads from command line */
@@ -61,13 +66,13 @@ int main(int argc, char* argv[]) {
     for (thread = 0; thread < thread_count; thread++) 
         pthread_create(&thread_handles[thread], NULL, Construct, (void*) thread);
 
-    //printf("Hello from the main thread! \n");
-
     // Threads will wait until child terminates
     for (thread = 0; thread < thread_count; thread++)
         pthread_join(thread_handles[thread], NULL);
-    printf("\nTest case for property %d.\nNumber of verified segments: %d. \nNumber of unverified segments: %d. \n",property_Index, global_verified_seg, (global_checked_seg)-global_verified_seg);
+    
+    writeToFile(property_Index, global_verified_seg, (global_checked_seg)-global_verified_seg);
 
+    fclose(filePointer);
     free(thread_handles);
     return 0;
 }
@@ -99,17 +104,29 @@ void *Construct(void* rank) {
            (*strObj).charArray[charIndex] = assignedChar;  
            (*strObj).charIndex = charIndex + 1;
            (*strObj).currentLength = currentStringLength + 1;
-
-           printf("Char: %c, Index: %i \n", (*strObj).charArray[charIndex], charIndex);
         }
     pthread_mutex_unlock(&mutexLock);
 
     if (currentStringLength < (number_of_Segments * substring_Length))
         goto LOOP;
-    else
+    else {
         verify(property_number, number_of_Segments, thread_num, substring_Length, my_rank, c0, c1, c2 );
+    }
     
     return NULL;
+}
+
+void writeToFile(int property_Index, int verifiedSegments, int unverifiedSegments) {
+        int stringLength = (*strObj).currentLength;
+        
+        fwrite((*strObj).charArray , stringLength, 1 , filePointer);
+        fwrite("\n", 1, 1, filePointer);
+        fprintf(filePointer, "%d", verifiedSegments);
+
+        printf("\nFinal Concatenated String: ");
+        for(int index = 0; index < stringLength; index++)
+            printf("%c", (*strObj).charArray[index]);
+        printf("\nTest case for property %d.\nNumber of verified segments: %d. \nNumber of unverified segments: %d. \n",property_Index, verifiedSegments, (global_checked_seg)-global_verified_seg);
 }
 
 
@@ -180,6 +197,7 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
         }else{
             printf("Invalid Property Number submitted! \n");
         }
+
     }
 
 }
