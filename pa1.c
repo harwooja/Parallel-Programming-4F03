@@ -66,6 +66,7 @@ int main(int argc, char* argv[]) {
     // Threads will wait until child terminates
     for (thread = 0; thread < thread_count; thread++)
         pthread_join(thread_handles[thread], NULL);
+    printf("\nTest case for property %d.\nNumber of verified segments: %d. \nNumber of unverified segments: %d. \n",property_Index, global_verified_seg, (global_checked_seg)-global_verified_seg);
 
     free(thread_handles);
     return 0;
@@ -131,7 +132,7 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
         pthread_mutex_lock(&mutexLock); //grab lock
             int start = global_checked_seg*L;
             int end = start+L;
-            printf("checking segment %d for property %d correctness from thread %d.\n", global_checked_seg, property_Index, rank);
+            printf(".");
             global_checked_seg++;
         pthread_mutex_unlock(&mutexLock); //release lock
         
@@ -143,33 +144,41 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
             if (eq){
                 pthread_mutex_lock(&mutexLock); //grab lock
                     global_verified_seg++;
-                    printf("Number of verified segments %d \n",global_verified_seg);
+                    printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
+            }else{
+                printf(".");
             }
         }else if (property_Index == 1){
             bool eq = resultingCount[0] + 2*(resultingCount[1]) == resultingCount[2];  
             if (eq){
                 pthread_mutex_lock(&mutexLock); //grab lock
                     global_verified_seg++;
-                    printf("Number of verified segments %d \n",global_verified_seg);
+                    printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
+            }else{
+                printf(".");
             }
         }else if (property_Index == 2){
             bool eq = resultingCount[0] * resultingCount[1] == resultingCount[2];  
             if (eq){
                 pthread_mutex_lock(&mutexLock); //grab lock
                     global_verified_seg++;
-                    printf("Number of verified segments %d \n",global_verified_seg);
+                    printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
+            }else{
+                printf(".");
             }              
         }else if (property_Index == 3){
             bool eq = resultingCount[0] * resultingCount[1] == resultingCount[2];  
             if (eq){
                 pthread_mutex_lock(&mutexLock); //grab lock
                     global_verified_seg++;
-                    printf("Number of verified segments %d \n",global_verified_seg);
+                    printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
-            }            
+            }else{
+                printf(".");
+            }        
         }else{
             printf("Invalid Property Number submitted! \n");
         }
