@@ -94,14 +94,12 @@ void *Construct(void* rank) {
 
         if (currentStringLength < (number_of_Segments * substring_Length) ) {
            char assignedChar = 'a' + my_rank;  
-          
-           printf("char index: %i \n", charIndex);
-          
+              
            (*strObj).charArray[charIndex] = assignedChar;  
            (*strObj).charIndex = charIndex + 1;
            (*strObj).currentLength = currentStringLength + 1;
 
-          // printf("Char: %c, Index: %i \n", (*strObj).charArray[charIndex], charIndex);
+           printf("Char: %c, Index: %i \n", (*strObj).charArray[charIndex], charIndex);
         }
     pthread_mutex_unlock(&mutexLock);
 
@@ -131,16 +129,17 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
     }
     for (int i = 0; i < num_of_checks; i++ ){
         pthread_mutex_lock(&mutexLock); //grab lock
-        int start = global_checked_seg*L;
-        int end = start+L;
+            int start = global_checked_seg*L;
+            int end = start+L;
             printf("checking segment %d for property %d correctness from thread %d.\n", global_checked_seg, property_Index, rank);
             global_checked_seg++;
         pthread_mutex_unlock(&mutexLock); //release lock
+        
         int* resultingCount = count(start, end,c0,c1,c2);
 
         if (property_Index == 0){
             bool eq = resultingCount[0] + resultingCount[1] == resultingCount[2]; 
-              //printf("f0 == 0, %d + %d = %d \n",resultingCount[0], resultingCount[1], resultingCount[2] ); 
+          
             if (eq){
                 pthread_mutex_lock(&mutexLock); //grab lock
                     global_verified_seg++;
@@ -174,31 +173,22 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
         }else{
             printf("Invalid Property Number submitted! \n");
         }
-
     }
+
 }
 
 int* count(int start, int end, char c0, char c1, char c2){
-    int i = start;
-    int c0_count = 0;
-    int c1_count = 0;
-    int c2_count = 0;
-    for (i; i < end; i++){ //(*strObj).charArray[i]
-           // printf("counting, string char = %c \n", (*strObj).charArray[i]);
-            if ((*strObj).charArray[i] == c0){
-                c0_count++;
-            }else if((*strObj).charArray[i] == c1){
-                c1_count++;
-            }else if ((*strObj).charArray[i] == c2){
-                c2_count++;
-            }else{}
-        }
-    int* CharCount = (int*) malloc(sizeof(int)*3);
-    CharCount[0] = c0_count;
-    CharCount[1] = c1_count;
-    CharCount[2] = c2_count;
+        int* charCountArray = (int*) malloc(sizeof(int)*3);
 
-    return CharCount;  
+        for (int i= start; i < end; i++)
+            if ((*strObj).charArray[i] == c0)
+                charCountArray[0]++;
+            else if((*strObj).charArray[i] == c1)
+                charCountArray[1]++;
+            else if ((*strObj).charArray[i] == c2)
+                charCountArray[2]++;
+            
+    return charCountArray;  
 }
 //}    
   
