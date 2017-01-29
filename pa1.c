@@ -146,9 +146,9 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
                     global_verified_seg++;
                     printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
-            }else{
-                printf(".");
             }
+            printf(".");
+            
         }else if (property_Index == 1){
             bool eq = resultingCount[0] + 2*(resultingCount[1]) == resultingCount[2];  
             if (eq){
@@ -156,9 +156,9 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
                     global_verified_seg++;
                     printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
-            }else{
-                printf(".");
             }
+            printf(".");
+            
         }else if (property_Index == 2){
             bool eq = resultingCount[0] * resultingCount[1] == resultingCount[2];  
             if (eq){
@@ -166,9 +166,8 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
                     global_verified_seg++;
                     printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
-            }else{
-                printf(".");
-            }              
+            }
+            printf(".");              
         }else if (property_Index == 3){
             bool eq = resultingCount[0] * resultingCount[1] == resultingCount[2];  
             if (eq){
@@ -176,9 +175,8 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
                     global_verified_seg++;
                     printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
-            }else{
-                printf(".");
-            }        
+            }
+            printf(".");        
         }else{
             printf("Invalid Property Number submitted! \n");
         }
