@@ -1,55 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <unistd.h>
 #include <stdbool.h>
-#include "pa1.h"
+#include <unistd.h>
+#include "sstr.h"
 
-#define MAX_NUM_ARGUMENTS 8
-int thread_count;
+struct sstr *strObj;
 
 pthread_mutex_t mutexLock;
-struct SOB* strObj;
-FILE* filePointer;
 
-//global variable for how many segments are verified
-//global for checked segments from verify, M_seg_counter
-int global_checked_seg = 0;
-int global_verified_seg = 0;
+void initiateStruct(int substring_Length, int substring_Partitions, char c0, char c1, char c2, int thread_count, int property_Index) {
 
-int main(int argc, char* argv[]) {
-    if (argc > MAX_NUM_ARGUMENTS) {
-        printf("Invalid number of arguments");
-        exit(1);
-    }
-   
-    filePointer = fopen("write.txt", "w+");
-
-    if (filePointer == NULL) {
-        printf("Write.txt doesn't exist -- cannot show output");
-        exit(1);
-    }
-
-    long thread; /* Use long in case of a 64-bit system */
-    int property_Index, substring_Length, substring_Partitions;
-    char c0,c1,c2;    
-    pthread_t* thread_handles;
-
-    /*Get number of threads from command line */
-    property_Index = strtol(argv[1], NULL, 10);
-    thread_count = strtol(argv[2], NULL, 10);
-    substring_Length = strtol(argv[3], NULL, 10);
-    substring_Partitions = strtol(argv[4], NULL, 10);
-    c0 = (*argv[5]);
-    c1 = (*argv[6]);
-    c2 = (*argv[7]);
-
-    // Allocate object on the heap
-    thread_handles = malloc(thread_count*sizeof(pthread_t));
-    strObj = malloc(sizeof(struct SOB));
-
-    /* Initialize structure paramaters */
-
+    if (strObj == NULL)
+        strObj = malloc(sizeof(sstr));
+    
     (*strObj).substring_Length = substring_Length;
     (*strObj).number_of_Segments = substring_Partitions;
     (*strObj).charArray = malloc(substring_Length * substring_Partitions + 1);
@@ -60,22 +24,10 @@ int main(int argc, char* argv[]) {
     (*strObj).c2 = c2;
     (*strObj).number_of_threads = thread_count;
     (*strObj).property_num = property_Index;
-    
-
-    /* Create our threads */
-    for (thread = 0; thread < thread_count; thread++) 
-        pthread_create(&thread_handles[thread], NULL, Construct, (void*) thread);
-
-    // Threads will wait until child terminates
-    for (thread = 0; thread < thread_count; thread++)
-        pthread_join(thread_handles[thread], NULL);
-    
-    writeToFile(property_Index, global_verified_seg, (global_checked_seg)-global_verified_seg);
-
-    fclose(filePointer);
-    free(thread_handles);
-    return 0;
+    (*strObj).global_checked_seg = 0;
+    (*strObj).global_verified_seg = 0;
 }
+
 
 void *Construct(void* rank) {
     long my_rank = (long) rank; 
@@ -116,27 +68,6 @@ void *Construct(void* rank) {
     return NULL;
 }
 
-void writeToFile(int property_Index, int verifiedSegments, int unverifiedSegments) {
-        int stringLength = (*strObj).currentLength;
-        
-        fwrite((*strObj).charArray , stringLength, 1 , filePointer);
-        fwrite("\n", 1, 1, filePointer);
-        fprintf(filePointer, "%d", verifiedSegments);
-
-        printf("\nFinal Concatenated String: ");
-        for(int index = 0; index < stringLength; index++)
-            printf("%c", (*strObj).charArray[index]);
-        printf("\nTest case for property %d.\nNumber of verified segments: %d. \nNumber of unverified segments: %d. \n",property_Index, verifiedSegments, (global_checked_seg)-global_verified_seg);
-}
-
-
-
-float RandomBetween(float smallNumber, float bigNumber)
-{
-    float diff = bigNumber - smallNumber;
-    return (((float) rand() / RAND_MAX) * diff) + smallNumber;
-}
-
 
 void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1, char c2 ){
     int num_of_checks;
@@ -147,10 +78,10 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
     }
     for (int i = 0; i < num_of_checks; i++ ){
         pthread_mutex_lock(&mutexLock); //grab lock
-            int start = global_checked_seg*L;
+            int start = (*strObj).global_checked_seg*L;
             int end = start+L;
             printf(".");
-            global_checked_seg++;
+            (*strObj).global_checked_seg++;
         pthread_mutex_unlock(&mutexLock); //release lock
         
         int* resultingCount = count(start, end,c0,c1,c2);
@@ -160,7 +91,7 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
           
             if (eq){
                 pthread_mutex_lock(&mutexLock); //grab lock
-                    global_verified_seg++;
+                    (*strObj).global_verified_seg++;
                     printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
             }
@@ -170,7 +101,7 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
             bool eq = resultingCount[0] + 2*(resultingCount[1]) == resultingCount[2];  
             if (eq){
                 pthread_mutex_lock(&mutexLock); //grab lock
-                    global_verified_seg++;
+                    (*strObj).global_verified_seg++;
                     printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
             }
@@ -180,7 +111,7 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
             bool eq = resultingCount[0] * resultingCount[1] == resultingCount[2];  
             if (eq){
                 pthread_mutex_lock(&mutexLock); //grab lock
-                    global_verified_seg++;
+                    (*strObj).global_verified_seg++;
                     printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
             }
@@ -189,7 +120,7 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
             bool eq = resultingCount[0] * resultingCount[1] == resultingCount[2];  
             if (eq){
                 pthread_mutex_lock(&mutexLock); //grab lock
-                    global_verified_seg++;
+                    (*strObj).global_verified_seg++;
                     printf(".");
                 pthread_mutex_unlock(&mutexLock); //release lock
             }
@@ -200,6 +131,7 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
 
     }
 
+    return 0;
 }
 
 int* count(int start, int end, char c0, char c1, char c2){
@@ -215,7 +147,15 @@ int* count(int start, int end, char c0, char c1, char c2){
             
     return charCountArray;  
 }
-//}    
-  
 
 
+
+float RandomBetween(float smallNumber, float bigNumber)
+{
+    float diff = bigNumber - smallNumber;
+    return (((float) rand() / RAND_MAX) * diff) + smallNumber;
+}
+
+sstr* returnStrObj() {
+    return strObj;
+}
