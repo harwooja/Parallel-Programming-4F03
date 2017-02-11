@@ -1,4 +1,4 @@
-CC	= mpicc
+CC	= gcc
 CFLAGS	= -Wall -ansi
 
 OBJECTS = pa2.o
