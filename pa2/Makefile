@@ -1,7 +1,7 @@
 CC = gcc
-CFLAGS = -std=gnu99 -Wall -fopenmp
+CFLAGS = -std=gnu99 -Wall -fopenmp -g
 LDFLAGS = -fopenmp
-LDLIB = -lpthread
+LDLIB = -fopenmp
 EXE = pa2.x
 #SRC = sstr.c fileio.c pa2.c
 SRC = $(wildcard *.c)

@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <omp.h>
 #include "sstr.h"
 
-struct sstr *strObj;
 
-pthread_mutex_t mutexLock;
+struct sstr *strObj;
 
 void initiateStruct(int substring_Length, int substring_Partitions, char c0, char c1, char c2, int thread_count, int property_Index) {
 
@@ -29,41 +28,42 @@ void initiateStruct(int substring_Length, int substring_Partitions, char c0, cha
 }
 
 
-void *Construct(void* rank) {
-    long my_rank = (long) rank; 
+void *Construct() {
+    int my_rank = omp_get_thread_num();
     
     //printf("Hello from thread %ld of %d \n", my_rank, thread_count);
     LOOP: usleep(RandomBetween(0.1, 0.5));
   
-    pthread_mutex_lock(&mutexLock);
-        /** Pull out values from our resource **/
-        int substring_Length = (*strObj).substring_Length;
-        int number_of_Segments = (*strObj).number_of_Segments;
-        int currentStringLength = (*strObj).currentLength;
-        int charIndex = (*strObj).charIndex;
-        int property_number = (*strObj).property_num;
-        int thread_num = (*strObj).number_of_threads;
-        char c0 = (*strObj).c0;
-        //printf("c0 = %c \n", c0);
-        char c1 = (*strObj).c1;
-        //printf("c1 = %c \n", c1);
-        char c2 = (*strObj).c2;
-        //printf("c2 = %c \n", c2);
+    int number_of_Segments, substring_Length, currentStringLength, charIndex, property_number, thread_num;
+    char c0, c1, c2;
 
+    #pragma omp critical 
+    {
+        /** Pull out values from our resource **/
+        substring_Length = (*strObj).substring_Length;
+        number_of_Segments = (*strObj).number_of_Segments;
+        currentStringLength = (*strObj).currentLength;
+        charIndex = (*strObj).charIndex;
+        property_number = (*strObj).property_num;
+        thread_num = (*strObj).number_of_threads;
+        c0 = (*strObj).c0;
+        c1 = (*strObj).c1;
+        c2 = (*strObj).c2;
+        
         if (currentStringLength < (number_of_Segments * substring_Length) ) {
            char assignedChar = 'a' + my_rank;  
-              
+
            (*strObj).charArray[charIndex] = assignedChar;  
            (*strObj).charIndex = charIndex + 1;
            (*strObj).currentLength = currentStringLength + 1;
         }
-    pthread_mutex_unlock(&mutexLock);
+    }
 
+    
     if (currentStringLength < (number_of_Segments * substring_Length))
         goto LOOP;
-    else {
+    else 
         verify(property_number, number_of_Segments, thread_num, substring_Length, my_rank, c0, c1, c2 );
-    }
     
     return NULL;
 }
@@ -77,52 +77,58 @@ void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1
         num_of_checks = M/N;
     }
     for (int i = 0; i < num_of_checks; i++ ){
-        pthread_mutex_lock(&mutexLock); //grab lock
-            int start = (*strObj).global_checked_seg*L;
-            int end = start+L;
+            int start, end;
+         #pragma omp critical
+          {
+            start = (*strObj).global_checked_seg*L;
+            end = start+L;
             printf(".");
             (*strObj).global_checked_seg++;
-        pthread_mutex_unlock(&mutexLock); //release lock
-        
+          }
+
         int* resultingCount = count(start, end,c0,c1,c2);
 
         if (property_Index == 0){
             bool eq = resultingCount[0] + resultingCount[1] == resultingCount[2]; 
           
             if (eq){
-                pthread_mutex_lock(&mutexLock); //grab lock
-                    (*strObj).global_verified_seg++;
-                    printf(".");
-                pthread_mutex_unlock(&mutexLock); //release lock
+                #pragma omp critical 
+                {
+                   (*strObj).global_verified_seg++;
+                   printf(".");
+                }
             }
             printf(".");
             
         }else if (property_Index == 1){
             bool eq = resultingCount[0] + 2*(resultingCount[1]) == resultingCount[2];  
             if (eq){
-                pthread_mutex_lock(&mutexLock); //grab lock
+                #pragma omp critical 
+                {
                     (*strObj).global_verified_seg++;
                     printf(".");
-                pthread_mutex_unlock(&mutexLock); //release lock
+                }
             }
             printf(".");
             
         }else if (property_Index == 2){
             bool eq = resultingCount[0] * resultingCount[1] == resultingCount[2];  
             if (eq){
-                pthread_mutex_lock(&mutexLock); //grab lock
+                #pragma omp critical 
+                {
                     (*strObj).global_verified_seg++;
                     printf(".");
-                pthread_mutex_unlock(&mutexLock); //release lock
+                }
             }
             printf(".");              
         }else if (property_Index == 3){
             bool eq = resultingCount[0] * resultingCount[1] == resultingCount[2];  
             if (eq){
-                pthread_mutex_lock(&mutexLock); //grab lock
+                #pragma omp critical 
+                {
                     (*strObj).global_verified_seg++;
                     printf(".");
-                pthread_mutex_unlock(&mutexLock); //release lock
+                }
             }
             printf(".");        
         }else{
