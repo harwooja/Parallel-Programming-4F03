@@ -14,7 +14,7 @@ typedef struct sstr {
 } sstr;
 
 void initiateStruct(int substring_Length, int substring_Partitions, char c0, char c1, char c2, int thread_count, int property_Index);
-void *Construct(void *rank); /*Thread function*/
+void *Construct(); /*Thread function*/
 int *count(int start, int end, char c0, char c1, char c2);
 void *verify(int property_Index, int M, int N, int L, int rank, char c0, char c1, char c2 );
 float RandomBetween(float smallNumber, float bigNumber);

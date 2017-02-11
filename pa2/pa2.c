@@ -16,7 +16,6 @@ int main(int argc, char* argv[]) {
    
     initiateFilePointer();
     
-    long thread; /* Use long in case of a 64-bit system */
     int property_Index, substring_Length, substring_Partitions;
     char c0,c1,c2;    
     pthread_t* thread_handles;
@@ -30,6 +29,7 @@ int main(int argc, char* argv[]) {
     c1 = (*argv[6]);
     c2 = (*argv[7]);
 
+    
     // Allocate object on the heap
     thread_handles = malloc(thread_count*sizeof(pthread_t));
 
@@ -37,13 +37,11 @@ int main(int argc, char* argv[]) {
     initiateStruct(substring_Length, substring_Partitions, c0, c1, c2, thread_count, property_Index);
 
     /* Create our threads */
-    for (thread = 0; thread < thread_count; thread++) 
-        pthread_create(&thread_handles[thread], NULL, Construct, (void*) thread);
+    #pragma omp parallel num_threads(thread_count)
+    {
+        Construct();
+    }
 
-    // Threads will wait until child terminates
-    for (thread = 0; thread < thread_count; thread++)
-        pthread_join(thread_handles[thread], NULL);
-    
     // Write to file
     writeToFile(returnStrObj());
 
