@@ -16,7 +16,8 @@ int main (int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    MPI_Init(&argc, &argv); // Creates communicator
+    //MPI_Init(&argc, &argv); // Creates communicator
+    MPI_Init(NULL,NULL);
     MPI_Comm_size(MPI_COMM_WORLD, &numOfCommunicators);
     MPI_Comm_rank(MPI_COMM_WORLD, &communicator_rank);
 
@@ -65,24 +66,31 @@ int main (int argc, char* argv[]) {
             //**chunkData= {0};
             
             Pixel ** chunkData = populateMatrix(inputPPM, minRow, maxRow, numCols);
-            unsigned char test = ((Pixel *)chunkData + (0 * numCols) + 0)->rChannel;
-            printf("tester: %u \n", test);
-
-            //unsigned char tester = ((Pixel *)chunkData + (0 * numCols) + 0)->rChannel;
-            //printf('test: %u', tester);
-            // MPI_Send(&&chunkData, 1, ampixel, 1, MPI_ANY_TAG, MPI_COMM_WORLD);
-        } 
-        /* Free up the types and finalize MPI */
+            //unsigned char test = ((Pixel *)chunkData + (0 * numCols) + 0)->rChannel;
+            //printf("tester: %u \n", test);
+            int chunkSize = (maxRow-minRow)*numCols;
+            int processRank = 1;
+            
+            MPI_Send(&chunkSize, 1, MPI_INT, processRank, 0, MPI_COMM_WORLD);
+            //MPI_Send(chunkData, chunkSize, ampixel, processRank, MPI_ANY_TAG, MPI_COMM_WORLD);
+            
+        }
         MPI_Type_free(&ampixel);
         MPI_Type_free(&cmpixel);
-        MPI_Type_free(&mpixel);
-    } else {
-        printf("test else");
+        MPI_Type_free(&mpixel); 
+    } else { 
+        int chunkSize; 
+        printf("rank other than 0 \n");
+        MPI_Recv(&chunkSize, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        //Pixel ** myChunk = {0};
+        //myChunk = MPI_Recv(chunkData,chunksz+1 , ampixel, 0, MPI_ANY_TAG, MPI_COMM_WORLD);
+
     }
-
-
+    /* Free up the types and finalize MPI */
+    
     MPI_Finalize();
     return 0;
+    
 }
 
 void extractCLIArgs(char* argv[]){
