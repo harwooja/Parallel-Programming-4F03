@@ -62,11 +62,14 @@ int main (int argc, char* argv[]) {
             //printf("minRow: %d \n", minRow);
             //printf("maxRow: %d \n", maxRow);
         
-            struct Pixel **chunkData= {0};
-            chunkData = populateMatrix(inputPPM, minRow, maxRow, numCols);
-            // unsigned char test = ((Pixel *)chunkData + 0 * numCols + 0)->rChannel;
-            // printf("%d \n",communicator_rank);
-            // printf("TEST %c \n", test);
+            //**chunkData= {0};
+            
+            Pixel ** chunkData = populateMatrix(inputPPM, minRow, maxRow, numCols);
+            unsigned char test = ((Pixel *)chunkData + (0 * numCols) + 0)->rChannel;
+            printf("tester: %u \n", test);
+
+            //unsigned char tester = ((Pixel *)chunkData + (0 * numCols) + 0)->rChannel;
+            //printf('test: %u', tester);
             // MPI_Send(&&chunkData, 1, ampixel, 1, MPI_ANY_TAG, MPI_COMM_WORLD);
         } 
         /* Free up the types and finalize MPI */
@@ -105,16 +108,12 @@ Pixel **populateMatrix(Image *matrix, int minRow, int maxRows, int numCols) {
     //Loop through pixel rows, create struct for each pixel and store into our sub-matrix
     for (int row = 0; row < rowSize-1; row++) //changed from minrow
         for (int col = 0; col < numCols; col++) {
-            printf("row: %d, col: %d \n", row+minRow, col);
+            //printf("row: %d, col: %d \n", row+minRow, col);
             ((Pixel *)pix + (row * numCols) + col)->rChannel = ImageGetPixel(matrix,  col, row+minRow, 0);
             ((Pixel *)pix + (row * numCols) + col)->gChannel = ImageGetPixel(matrix,  col, row+minRow, 1);
             ((Pixel *)pix + (row * numCols) + col)->bChannel = ImageGetPixel(matrix,  col, row+minRow, 2);
-            //printf("Unsigned char R: %u \n",ImageGetPixel(matrix,  col, row+minRow, 0));
-            //printf("Unsigned char R: %u \n",ImageGetPixel(matrix,  col, row+minRow, 1));
-            //printf("Unsigned char R: %u \n",ImageGetPixel(matrix,  col, row+minRow, 2));
-            //printf("Unsigned char R: %u \n",((Pixel *)pix + row * (numCols) + col)->rChannel );
-            //printf("Unsigned char G: %u \n",((Pixel *)pix + row * (numCols) + col)->gChannel );
-            //printf("Unsigned char B: %u \n",((Pixel *)pix + row * (numCols) + col)->bChannel );
+            //unsigned char test = ((Pixel *)pix + (row * numCols) + col)->rChannel;
+            //printf("tester: %u \n", test);
         }
      return pix;
 }
