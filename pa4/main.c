@@ -103,15 +103,15 @@ Pixel **populateMatrix(Image *matrix, int minRow, int maxRows, int numCols) {
     int colSize = numCols;
     Pixel **pix= (Pixel **)malloc(rowSize * colSize * sizeof(Pixel));
     //Loop through pixel rows, create struct for each pixel and store into our sub-matrix
-    for (int row = minRow; row < rowSize; row++) //changed from minrow
+    for (int row = 0; row < rowSize-1; row++) //changed from minrow
         for (int col = 0; col < numCols; col++) {
-            //printf("row: %d, col: %d \n", row, col);
-            //((Pixel *)pix + (row * numCols) + col)->rChannel = ImageGetPixel(matrix, row, col, 0);
-            //((Pixel *)pix + row * numCols + col)->gChannel = ImageGetPixel(matrix, row, col, 1);
-            //((Pixel *)pix + row * numCols + col)->bChannel = ImageGetPixel(matrix, row, col, 2);
-            printf("Unsigned char R: %u \n",ImageGetPixel(matrix, row, col, 0));
-            printf("Unsigned char R: %u \n",ImageGetPixel(matrix, row, col, 1));
-            printf("Unsigned char R: %u \n",ImageGetPixel(matrix, row, col, 2));
+            printf("row: %d, col: %d \n", row+minRow, col);
+            ((Pixel *)pix + (row * numCols) + col)->rChannel = ImageGetPixel(matrix,  col, row+minRow, 0);
+            ((Pixel *)pix + (row * numCols) + col)->gChannel = ImageGetPixel(matrix,  col, row+minRow, 1);
+            ((Pixel *)pix + (row * numCols) + col)->bChannel = ImageGetPixel(matrix,  col, row+minRow, 2);
+            //printf("Unsigned char R: %u \n",ImageGetPixel(matrix,  col, row+minRow, 0));
+            //printf("Unsigned char R: %u \n",ImageGetPixel(matrix,  col, row+minRow, 1));
+            //printf("Unsigned char R: %u \n",ImageGetPixel(matrix,  col, row+minRow, 2));
             //printf("Unsigned char R: %u \n",((Pixel *)pix + row * (numCols) + col)->rChannel );
             //printf("Unsigned char G: %u \n",((Pixel *)pix + row * (numCols) + col)->gChannel );
             //printf("Unsigned char B: %u \n",((Pixel *)pix + row * (numCols) + col)->bChannel );
