@@ -17,5 +17,5 @@ int input_ppm_width;
 
 
 void extractCLIArgs(char* argv[]);
-struct Pixel *populateMatrix(Image* matrix, int numRows, int numCols);
+struct Pixel **populateMatrix(Image* matrix, int minRow, int maxRows, int numCols);
 int mpi_pixel_init(MPI_Datatype *mpi_pixel);

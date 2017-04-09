@@ -31,10 +31,9 @@ int main (int argc, char* argv[]) {
         Image *inputPPM = ImageRead(input_ppm_filename);
         input_ppm_height = ImageHeight(inputPPM);
         input_ppm_width = ImageWidth(inputPPM); 
+        printf("h: %d w: %d \n",input_ppm_height,input_ppm_width );
 
         int numOfChunks = input_ppm_height / numOfCommunicators;
-
-
         /* Create an MPI pixel datatype */
         mpi_pixel_init(&mpixel);
 
@@ -46,10 +45,11 @@ int main (int argc, char* argv[]) {
         MPI_Type_contiguous(input_ppm_width, cmpixel, &ampixel);
         MPI_Type_commit(&ampixel);
 
-        int numRows = input_ppm_height;
         int numCols = input_ppm_width;
         // Get row indexes 
         for (int rowIndex = 0; rowIndex < input_ppm_height; rowIndex++) {
+            //printf("rowIndex: %d \n", rowIndex);
+            
             int minRow = rowIndex - blurRadius;
             int maxRow = rowIndex + blurRadius;
             
@@ -57,23 +57,30 @@ int main (int argc, char* argv[]) {
                 minRow = 0;
             if (maxRow > input_ppm_height)
                 maxRow = input_ppm_height;
+            
+            
+            //printf("minRow: %d \n", minRow);
+            //printf("maxRow: %d \n", maxRow);
         
-            struct Pixel *chunkData= {{0}};
-            chunkData = populateMatrix(inputPPM, numRows, numCols);
-            MPI_Send(&chunkData, 1, ampixel, 1, MPI_ANY_TAG, MPI_COMM_WORLD);
-        }
-  
-    } 
+            struct Pixel **chunkData= {0};
+            chunkData = populateMatrix(inputPPM, minRow, maxRow, numCols);
+            // unsigned char test = ((Pixel *)chunkData + 0 * numCols + 0)->rChannel;
+            // printf("%d \n",communicator_rank);
+            // printf("TEST %c \n", test);
+            // MPI_Send(&&chunkData, 1, ampixel, 1, MPI_ANY_TAG, MPI_COMM_WORLD);
+        } 
+        /* Free up the types and finalize MPI */
+        MPI_Type_free(&ampixel);
+        MPI_Type_free(&cmpixel);
+        MPI_Type_free(&mpixel);
+    } else {
+        printf("test else");
+    }
 
-    /* Free up the types and finalize MPI */
-    MPI_Type_free(&ampixel);
-    MPI_Type_free(&cmpixel);
-    MPI_Type_free(&mpixel);
+
     MPI_Finalize();
     return 0;
 }
-
-
 
 void extractCLIArgs(char* argv[]){
         // Copy blur radius CLI argument to variable
@@ -87,23 +94,30 @@ void extractCLIArgs(char* argv[]){
         output_ppm_filename = (char*)malloc(sizeof(char) * output_ppm_length);
         strcpy(output_ppm_filename, argv[3]);  
 }
-
 /** 
 Populates our sub-matrices with pixel data for subprocesses
 Note: R Channel = 0, G Channel = 1, B Channel = 2 
 **/
-struct Pixel *populateMatrix(Image *matrix, int numRows, int numCols) {
-    struct Pixel *pix= (struct Pixel *)malloc(numRows * numCols * sizeof(Pixel));
-    // Loop through pixel rows, create struct for each pixel and store into our sub-matrix
-    for (int row = 0; row < numRows; row++)
+Pixel **populateMatrix(Image *matrix, int minRow, int maxRows, int numCols) {
+    int rowSize = maxRows - minRow + 1;
+    int colSize = numCols;
+    Pixel **pix= (Pixel **)malloc(rowSize * colSize * sizeof(Pixel));
+    //Loop through pixel rows, create struct for each pixel and store into our sub-matrix
+    for (int row = minRow; row < rowSize; row++) //changed from minrow
         for (int col = 0; col < numCols; col++) {
-            pix[row][col].rChannel = ImageGetPixel(matrix, row, col, 0);
-            pix[row][col].gChannel = ImageGetPixel(matrix, row, col, 1);
-            pix[row][col].bChannel = ImageGetPixel(matrix, row, col, 2);  
+            //printf("row: %d, col: %d \n", row, col);
+            //((Pixel *)pix + (row * numCols) + col)->rChannel = ImageGetPixel(matrix, row, col, 0);
+            //((Pixel *)pix + row * numCols + col)->gChannel = ImageGetPixel(matrix, row, col, 1);
+            //((Pixel *)pix + row * numCols + col)->bChannel = ImageGetPixel(matrix, row, col, 2);
+            printf("Unsigned char R: %u \n",ImageGetPixel(matrix, row, col, 0));
+            printf("Unsigned char R: %u \n",ImageGetPixel(matrix, row, col, 1));
+            printf("Unsigned char R: %u \n",ImageGetPixel(matrix, row, col, 2));
+            //printf("Unsigned char R: %u \n",((Pixel *)pix + row * (numCols) + col)->rChannel );
+            //printf("Unsigned char G: %u \n",((Pixel *)pix + row * (numCols) + col)->gChannel );
+            //printf("Unsigned char B: %u \n",((Pixel *)pix + row * (numCols) + col)->bChannel );
         }
-    return &pix;
+     return pix;
 }
-
 
 
 /*
@@ -111,6 +125,7 @@ struct Pixel *populateMatrix(Image *matrix, int numRows, int numCols) {
  */
 int mpi_pixel_init(MPI_Datatype *mpi_pixel)
 {
+    struct Pixel pixel; //added
     int count = 3;               /* number of blocks in the struct */
     int blocks[3] = {1, 1, 1};   /* set up 3 blocks */
     MPI_Datatype types[3] = {    /* pixel internal types */
