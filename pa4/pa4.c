@@ -4,9 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-extern "C"{
-	# include "ppmFile.h"
-}
+#include "ppmFile.h"
 #include "ppmFile.h"
 
 const int MAX_STRING = 100;
