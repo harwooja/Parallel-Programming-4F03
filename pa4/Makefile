@@ -1,14 +1,11 @@
-CC = mpicc
-CFLAGS = -std=gnu99 -g -Wall 
-EXE = $(*.x)
-LDLIBS = 
-LDFLAGS = 
+EXECS=pa4
+MPICC?=mpicc
 
+all: ${EXECS}
 
-all: .mpicc
-
-.mpicc: 
-	mpicc -g -Wall -o main main.c ppm.c
+pa4: pa4.c ppmFile.c
+	${MPICC} pa4.c ppmFile.c -o pa4.x 
 
 clean:
-	rm ./*.dSYM 
+	rm -f ${EXECS}
+
