@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "pixel.h"
 extern "C"{
 	# include "ppmFile.h"
 }
@@ -31,10 +32,13 @@ int i;
     blurRadius = atoi(argv[1]);
     input_ppm_filename= argv[2];
     output_ppm_filename = argv[3];
+	
 	inputPPM = ImageRead(input_ppm_filename);
-  	outputPPM = ImageCreate(inputPPM->width, inputPPM->height);
-	int communicator_rank;
-   	int numOfCommunicators;
+	int output_ppm_height = inputPPM->height;
+	int output_ppm_width = inputPPM->width;
+  	outputPPM = ImageCreate(output_ppm_height, output_ppm_width);
+	//int communicator_rank;
+   	//int numOfCommunicators;
     
    	MPI_Init(NULL, NULL);
    	MPI_Comm_size(MPI_COMM_WORLD, &numOfCommunicators);
