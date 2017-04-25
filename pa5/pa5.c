@@ -1,69 +1,85 @@
 //TJ Walker 1204996 and Jake Harwood 1226732
-//assignment 4 comp sci 4F03
+//assignment 5 comp sci 4F03
+
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
-#include "pixel.h"
-extern "C"{
-	# include "ppmFile.h"
-}
+extern "C"
+{
 #include "ppmFile.h"
+}
 
 const int MAX_STRING = 100;
 #define MAX_NUM_ARGUMENTS 4
 
-int blurRadius; 
-char * input_ppm_filename; 
+int blurRadius;
+char * input_ppm_filename;
 char * output_ppm_filename;
 Image * inputPPM;
-Image * outputPPM; 
-void blurFilter(int myRank, int numOfProcesses); 
-void blur( int x, int y); 
-/*  main  */
+Image * outputPPM;
+void blurFilter(int myRank, int numProcesses);
+void blur( int x, int y);
+
+/* main */
+
 int main(int argc, char **argv) {
 
-int i;
+	if (argc != MAX_NUM_ARGUMENTS) {
+		printf("Too many arguments -- application quitting");
+		exit(1);
+	}
 
- if (argc != MAX_NUM_ARGUMENTS) {
-    printf("Too many arguments -- application quitting");
-    exit(1);
-  }
     blurRadius = atoi(argv[1]);
     input_ppm_filename= argv[2];
     output_ppm_filename = argv[3];
+    inputPPM = ImageRead(input_ppm_filename);
+	outputPPM = ImageCreate(inputPPM->width, inputPPM->height);
+
+
+	// come back
+	dim3 gridCustom(ceil((double)inputPPM->width / 32), ceil((double)inputPPM->height / 32), 1);
+	dim3 blockCustom(32, 32, 1);
+	// come back
+
 	
-	inputPPM = ImageRead(input_ppm_filename);
-	int output_ppm_height = inputPPM->height;
-	int output_ppm_width = inputPPM->width;
-  	outputPPM = ImageCreate(output_ppm_height, output_ppm_width);
-	//int communicator_rank;
-   	//int numOfCommunicators;
-    
-   	MPI_Init(NULL, NULL);
-   	MPI_Comm_size(MPI_COMM_WORLD, &numOfCommunicators);
-   	MPI_Comm_rank(MPI_COMM_WORLD, &communicator_rank);
-	blurFilter(communicator_rank, numOfCommunicators);
+	int imageSize= inputPPM->width * inputPPM->height * 3;
+	unsigned char *inputImgData, *outputImgData;
 
-	if (communicator_rank == 0){
-		ImageWrite(outputPPM, output_ppm_filename); 
-	}
+	cudaMalloc(&inputImgData, imageSize);
+	cudaMalloc(&outputImgData, imageSize);
+	cudaMemcpy(inputImgData, inputPPM->data, imageSize, cudaMemcpyHostToDevice);
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Finalize();
+	//come back
+	blurFilter<<<gridCustom, blockCustom>>>(inputPPM->width , inputPPM->height, blurRadius, inputImgData, outputImgData);
+	//come back
+	cudaDeviceSynchronize();
 
+
+
+	cudaMemcpy(outputPPM->data, outputImgData, imageSize, cudaMemcpyDeviceToHost);
+	ImageWrite(outputPPM, argv[3]);
+
+
+	cudaFree(inputImgData);
+	cudaFree(outputImgData);
+
+	free(inputPPM->data);
+	free(inputPPM);
+	free(outputPPM->data);
+	free(outputPPM);
+
+	return 0;
 }
 
-void blur( int x, int y){
+
+
+__device__ void blur(int x, int y, int blurRadius, int width, int height, unsigned char *input, unsigned char *output) {
 	
-	int	minX;  
-	int	minY; 
-	int	maxX; 
-	int	maxY; 
-	minX = x - blurRadius;
-	minY = y - blurRadius;
-	maxX = x + blurRadius;
-	maxY = y + blurRadius;
+
+	int minX = x - blurRadius;
+	int minY = y - blurRadius;
+	int maxX = x + blurRadius;
+	int maxY = y + blurRadius;
 
 	if (minX < 0) {
 		minX = 0;
@@ -71,49 +87,36 @@ void blur( int x, int y){
 	if (minY < 0) {
 		minY = 0;
 	}
-	if (maxX >= inputPPM->width){
-		maxX = inputPPM->width ;
+	if (maxX >= width){
+		maxX = width;
 	}  
-	if (maxY >= inputPPM->height){
-		maxY = inputPPM->height ;
+	if (maxY >= height){
+		maxY = height;
 	}
-    
-    unsigned long int rgbBLUR[3] = {0, 0, 0};
-    
-	int i;
-	int j;
-	int k;
-	for (j = minY; j <= maxY; j++){
-		for (i = minX; i <= maxX; i++){
-			for (k = 0; k < 3; k++){
-				rgbBLUR[k] += ImageGetPixel(inputPPM, i, j, k);
+
+	unsigned long int rgbBLUR[3] = {0, 0, 0};
+
+	for (int j = minY; j <= maxY; j++){
+		for (int i = minX; i <= maxX; i++){
+			for (int k = 0; k < 3; k++){
+				rgbBLUR[k] += input[j * width * 3 + i * 3 + k];
 				int numOfPixels = ((maxX - minX + 1) * (maxY - minY + 1));
-				ImageSetPixel(outputPPM, x, y, k, (unsigned char)( rgbBLUR[k] / numOfPixels ));
+				output[y * width * 3 + x * 3 + k] = (unsigned char)(rgbBLUR[k] / numOfPixels);
+				
 			}
 		}
 	}
 }
 
-void blurFilter(int myRank, int numOfProcesses)
-{
-	int i; 
-	int j;
-	for (j = myRank; j < inputPPM->height; j += numOfProcesses){
-		for (i = 0; i < inputPPM->width; i++){
-			blur(i, j);
-		}
+
+
+__global__ void blurFilter(int width, int height, int blurRadius, unsigned char * inputImgData, unsigned char * outputImgData) {
+	int x = blockIdx.x * blockDim.x + threadIdx.x,
+		y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (x < width && y < height){
+		blur(x, y, blurRadius, width, height, inputImgData, outputImgData);
 	}
-	for (j = myRank; j < outputPPM->height; j += numOfProcesses){
-			MPI_Send((void*)(outputPPM->data + j * outputPPM->width * 3), outputPPM->width * 3, MPI_UNSIGNED_CHAR,0,0,MPI_COMM_WORLD);
-		}
-	if (myRank == 0){
-		for (j = 1; j < outputPPM->height; j++){
-			if (j % numOfProcesses > 0){
-				MPI_Recv( (void*)(outputPPM->data + j * outputPPM->width * 3),outputPPM->width * 3,MPI_UNSIGNED_CHAR,j % numOfProcesses,0,MPI_COMM_WORLD,NULL);
-			}
-		}
-	}		
+		
 }
-
-
 
