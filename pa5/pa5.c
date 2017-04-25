@@ -4,12 +4,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-extern "C"
-{
-#include "ppmFile.h"
+extern "C" {
+	#include "ppmFile.h"
 }
 
-const int MAX_STRING = 100;
 #define MAX_NUM_ARGUMENTS 4
 
 int blurRadius;
@@ -17,61 +15,6 @@ char * input_ppm_filename;
 char * output_ppm_filename;
 Image * inputPPM;
 Image * outputPPM;
-void blurFilter(int myRank, int numProcesses);
-void blur( int x, int y);
-
-/* main */
-
-int main(int argc, char **argv) {
-
-	if (argc != MAX_NUM_ARGUMENTS) {
-		printf("Too many arguments -- application quitting");
-		exit(1);
-	}
-
-    blurRadius = atoi(argv[1]);
-    input_ppm_filename= argv[2];
-    output_ppm_filename = argv[3];
-    inputPPM = ImageRead(input_ppm_filename);
-	outputPPM = ImageCreate(inputPPM->width, inputPPM->height);
-
-
-	// come back
-	dim3 gridCustom(ceil((double)inputPPM->width / 32), ceil((double)inputPPM->height / 32), 1);
-	dim3 blockCustom(32, 32, 1);
-	// come back
-
-	
-	int imageSize= inputPPM->width * inputPPM->height * 3;
-	unsigned char *inputImgData, *outputImgData;
-
-	cudaMalloc(&inputImgData, imageSize);
-	cudaMalloc(&outputImgData, imageSize);
-	cudaMemcpy(inputImgData, inputPPM->data, imageSize, cudaMemcpyHostToDevice);
-
-	//come back
-	blurFilter<<<gridCustom, blockCustom>>>(inputPPM->width , inputPPM->height, blurRadius, inputImgData, outputImgData);
-	//come back
-	cudaDeviceSynchronize();
-
-
-
-	cudaMemcpy(outputPPM->data, outputImgData, imageSize, cudaMemcpyDeviceToHost);
-	ImageWrite(outputPPM, argv[3]);
-
-
-	cudaFree(inputImgData);
-	cudaFree(outputImgData);
-
-	free(inputPPM->data);
-	free(inputPPM);
-	free(outputPPM->data);
-	free(outputPPM);
-
-	return 0;
-}
-
-
 
 __device__ void blur(int x, int y, int blurRadius, int width, int height, unsigned char *input, unsigned char *output) {
 	
@@ -102,21 +45,60 @@ __device__ void blur(int x, int y, int blurRadius, int width, int height, unsign
 				rgbBLUR[k] += input[j * width * 3 + i * 3 + k];
 				int numOfPixels = ((maxX - minX + 1) * (maxY - minY + 1));
 				output[y * width * 3 + x * 3 + k] = (unsigned char)(rgbBLUR[k] / numOfPixels);
-				
 			}
 		}
 	}
 }
 
-
-
 __global__ void blurFilter(int width, int height, int blurRadius, unsigned char * inputImgData, unsigned char * outputImgData) {
-	int x = blockIdx.x * blockDim.x + threadIdx.x,
-		y = blockIdx.y * blockDim.y + threadIdx.y;
-
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int	y = blockIdx.y * blockDim.y + threadIdx.y;
 	if (x < width && y < height){
 		blur(x, y, blurRadius, width, height, inputImgData, outputImgData);
-	}
-		
+	}	
 }
+
+
+
+/* main */
+
+int main(int argc, char **argv) {
+
+	if (argc != MAX_NUM_ARGUMENTS) {
+		printf("Too many arguments -- application quitting");
+		exit(1);
+	}
+
+    blurRadius = atoi(argv[1]);
+    input_ppm_filename= argv[2];
+    output_ppm_filename = argv[3];
+    inputPPM = ImageRead(input_ppm_filename);
+	outputPPM = ImageCreate(inputPPM->width, inputPPM->height);
+	int imageSize= inputPPM->width * inputPPM->height * 3;
+	unsigned char *inputImgData, *outputImgData;
+
+	int threadsPerBlock = 32;
+
+	dim3 gridCustom(ceil((double)inputPPM->width / threadsPerBlock), ceil((double)inputPPM->height / threadsPerBlock), 1);
+	dim3 blockCustom(threadsPerBlock, threadsPerBlock, 1);
+	
+	cudaMalloc(&inputImgData, imageSize);
+	cudaMalloc(&outputImgData, imageSize);
+	cudaMemcpy(inputImgData, inputPPM->data, imageSize, cudaMemcpyHostToDevice);
+
+	blurFilter<<<gridCustom, blockCustom>>>(inputPPM->width, inputPPM->height, blurRadius, inputImgData, outputImgData);
+	cudaDeviceSynchronize();
+
+	cudaMemcpy(outputPPM->data, outputImgData, imageSize, cudaMemcpyDeviceToHost);
+	ImageWrite(outputPPM, argv[3]);
+
+	cudaFree(inputImgData);
+	cudaFree(outputImgData);
+	
+	free(inputPPM);
+	free(outputPPM);
+
+	return 0;
+}
+
 
